@@ -1,28 +1,8 @@
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
-use std::collections::BTreeMap;
 use std::fs;
 use std::ops::Range;
 use std::path::Path;
-
-pub fn sort_json_value(value: &mut Value) {
-    match value {
-        Value::Object(map) => {
-            let mut sorted = BTreeMap::new();
-            for (key, mut nested_value) in std::mem::take(map) {
-                sort_json_value(&mut nested_value);
-                sorted.insert(key, nested_value);
-            }
-            *map = sorted.into_iter().collect();
-        }
-        Value::Array(arr) => {
-            for value in arr.iter_mut() {
-                sort_json_value(value);
-            }
-        }
-        _ => {}
-    }
-}
 
 pub fn sort_json_string(original: &str) -> Result<String> {
     validate_json(original)?;
@@ -211,11 +191,7 @@ impl<'a> Parser<'a> {
             Some(b't') => self.parse_literal("true").map(JsonNode::Primitive),
             Some(b'f') => self.parse_literal("false").map(JsonNode::Primitive),
             Some(b'n') => self.parse_literal("null").map(JsonNode::Primitive),
-            Some(byte) => bail!(
-                "Unexpected byte '{}' at position {}",
-                byte as char,
-                self.pos
-            ),
+            Some(byte) => bail!("Unexpected byte '{}' at byte {}", byte as char, self.pos),
             None => bail!("Unexpected end of input"),
         }
     }
@@ -357,9 +333,7 @@ impl<'a> Parser<'a> {
         }
 
         match self.peek_byte() {
-            Some(b'0') => {
-                self.pos += 1;
-            }
+            Some(b'0') => self.pos += 1,
             Some(b'1'..=b'9') => {
                 self.pos += 1;
                 while matches!(self.peek_byte(), Some(b'0'..=b'9')) {
