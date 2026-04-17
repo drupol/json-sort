@@ -48,7 +48,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let (files_to_process, mut had_errors) = collect_files(&args.files)?;
+    let (files_to_process, mut had_errors) = collect_files(&args.files);
     let mut had_unsorted = false;
 
     let results: Vec<FileResult> = files_to_process
@@ -123,7 +123,7 @@ fn check_file(path: &Path) -> Result<bool> {
     Ok(original != sorted)
 }
 
-fn collect_files(patterns: &[String]) -> Result<(Vec<PathBuf>, bool)> {
+fn collect_files(patterns: &[String]) -> (Vec<PathBuf>, bool) {
     let mut files_to_process = Vec::new();
     let mut seen_paths = HashSet::new();
     let mut had_errors = false;
@@ -138,49 +138,58 @@ fn collect_files(patterns: &[String]) -> Result<(Vec<PathBuf>, bool)> {
                 if entry.file_type().is_file()
                     && entry.path().extension().is_some_and(|ext| ext == "json")
                 {
-                    add_unique_path(
+                    add_path(
                         &mut files_to_process,
                         &mut seen_paths,
                         entry.path().to_path_buf(),
-                    )?;
+                    );
                 }
             }
         } else if pattern.contains('*') || pattern.contains('?') || pattern.contains('[') {
-            let mut matched = false;
-            for entry in glob(pattern).context("Failed to read glob pattern")? {
-                let p = entry.context("Error expanding glob pattern")?;
-                if p.is_file() {
-                    matched = true;
-                    add_unique_path(&mut files_to_process, &mut seen_paths, p)?;
+            match glob(pattern) {
+                Ok(entries) => {
+                    let mut matched = false;
+                    for entry in entries {
+                        match entry {
+                            Ok(p) => {
+                                if p.is_file() {
+                                    matched = true;
+                                    add_path(&mut files_to_process, &mut seen_paths, p);
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Error expanding glob pattern '{}': {}", pattern, e);
+                                had_errors = true;
+                            }
+                        }
+                    }
+                    if !matched {
+                        eprintln!("No files matched input: {}", pattern);
+                        had_errors = true;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Invalid glob pattern '{}': {}", pattern, e);
+                    had_errors = true;
                 }
             }
-            if !matched {
-                eprintln!("No files matched input: {}", pattern);
-                had_errors = true;
-            }
+        } else if path.exists() {
+            add_path(&mut files_to_process, &mut seen_paths, path.to_path_buf());
         } else {
-            if path.exists() {
-                add_unique_path(&mut files_to_process, &mut seen_paths, path.to_path_buf())?;
-            } else {
-                eprintln!("No files matched input: {}", pattern);
-                had_errors = true;
-            }
+            eprintln!("No files matched input: {}", pattern);
+            had_errors = true;
         }
     }
 
-    Ok((files_to_process, had_errors))
+    (files_to_process, had_errors)
 }
 
-fn add_unique_path(
-    files: &mut Vec<PathBuf>,
-    seen: &mut HashSet<PathBuf>,
-    path: PathBuf,
-) -> Result<()> {
-    let canonical = fs::canonicalize(&path)
-        .with_context(|| format!("Failed to canonicalize path {:?}", path))?;
-
-    if seen.insert(canonical) {
+fn add_path(files: &mut Vec<PathBuf>, seen: &mut HashSet<PathBuf>, path: PathBuf) {
+    if let Ok(canonical) = fs::canonicalize(&path) {
+        if seen.insert(canonical) {
+            files.push(path);
+        }
+    } else if seen.insert(path.clone()) {
         files.push(path);
     }
-    Ok(())
 }
