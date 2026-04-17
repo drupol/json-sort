@@ -6,7 +6,9 @@
 
 rustPlatform.buildRustPackage {
   pname = "json-sort";
-  version = "0.1.0";
+  version = "0.1.1";
+
+  __structuredAttrs = true;
 
   src = lib.fileset.toSource {
     root = ../../..;
@@ -24,10 +26,9 @@ rustPlatform.buildRustPackage {
 
   doInstallCheck = true;
   nativeInstallCheckInputs = [ versionCheckHook ];
-  versionCheckProgramArg = "--version";
 
   meta = {
-    description = "A CLI tool that sorts JSON object keys to make comparisons and diffs easier, without reordering arrays.";
+    description = "Command-line tool to sort JSON object keys in-place, preserving formatting and comments";
     homepage = "https://github.com/drupol/json-sort";
     license = lib.licenses.eupl12;
     mainProgram = "json-sort";
