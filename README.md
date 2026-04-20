@@ -17,7 +17,21 @@ It is designed to make JSON files easier to compare by sorting object keys only.
 
 ## Installation
 
-In the project folder:
+## Via Cargo
+
+You can install the binary with Cargo:
+
+```sh
+cargo install json-sort
+```
+
+### Via Nixpkgs
+
+Available via the [`json-sort` package][json-sort package], the binary is called `json-sort`.
+
+## Via the source code
+
+Clone the repository and run in the sourcecode folder:
 
 ```sh
 cargo build --release
@@ -27,15 +41,11 @@ The binary will be in `target/release/json-sort`.
 
 ### Via Nix
 
-You can use the package from this repository with Nix. If you have Nix installed, you can run the tool directly without building it:
+You can use the package from this repository with Nix. If you have Nix installed, you can run the tool directly:
 
 ```sh
 nix run github:drupol/json-sort
 ```
-
-### Via Nixpkgs
-
-Available soon through [`json-sort` package][json-sort package], the binary is called `json-sort`.
 
 ## Usage
 
