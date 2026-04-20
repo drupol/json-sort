@@ -17,7 +17,7 @@ It is designed to make JSON files easier to compare by sorting object keys only.
 
 ## Installation
 
-## Via Cargo
+### Via Cargo
 
 You can install the binary with Cargo:
 
