@@ -29,7 +29,7 @@ cargo install json-sort
 
 Available via the [`json-sort` package][json-sort package], the binary is called `json-sort`.
 
-## Via the source code
+### Via the source code
 
 Clone the repository and run in the sourcecode folder:
 
