@@ -58,13 +58,13 @@ fn main() -> Result<()> {
                 match check_file(&path) {
                     Ok(true) => FileStatus::Unsorted,
                     Ok(false) => FileStatus::Clean,
-                    Err(e) => FileStatus::Error(e.to_string()),
+                    Err(e) => FileStatus::Error(format!("{:#}", e)),
                 }
             } else {
                 match sort_json_file(&path) {
                     Ok(true) => FileStatus::Fixed,
                     Ok(false) => FileStatus::Clean,
-                    Err(e) => FileStatus::Error(e.to_string()),
+                    Err(e) => FileStatus::Error(format!("{:#}", e)),
                 }
             };
             FileResult { path, status }
@@ -108,7 +108,7 @@ fn process_stdin() -> Result<()> {
         .read_to_string(&mut buffer)
         .context("Failed to read from stdin")?;
 
-    let sorted = sort_json_string(&buffer)?;
+    let sorted = sort_json_string(&buffer).context("Failed to sort JSON from stdin")?;
     println!("{}", sorted);
     Ok(())
 }

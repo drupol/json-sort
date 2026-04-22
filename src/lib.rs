@@ -1,14 +1,14 @@
 use anyhow::{bail, Context, Result};
-use serde_json::Value;
+use std::borrow::Cow;
 use std::fs;
 use std::ops::Range;
 use std::path::Path;
 
 pub fn sort_json_string(original: &str) -> Result<String> {
-    validate_json(original)?;
-
     let mut parser = Parser::new(original);
-    let document = parser.parse_document()?;
+    let document = parser
+        .parse_document()
+        .context("Parsing the JSON was not possible")?;
     document.render()
 }
 
@@ -29,16 +29,10 @@ pub fn sort_json_file<P: AsRef<Path>>(path: P) -> Result<bool> {
     Ok(true)
 }
 
-fn validate_json(original: &str) -> Result<()> {
-    let stripped = json_comments::StripComments::new(original.as_bytes());
-    let _: Value = serde_json::from_reader(stripped).context("Failed to parse JSON")?;
-    Ok(())
-}
-
 struct Document<'a> {
     source: &'a str,
     leading: Range<usize>,
-    root: JsonNode,
+    root: JsonNode<'a>,
     trailing: Range<usize>,
 }
 
@@ -56,13 +50,13 @@ impl<'a> Document<'a> {
     }
 }
 
-enum JsonNode {
-    Object(ObjectNode),
-    Array(ArrayNode),
+enum JsonNode<'a> {
+    Object(ObjectNode<'a>),
+    Array(ArrayNode<'a>),
     Primitive(Range<usize>),
 }
 
-impl JsonNode {
+impl<'a> JsonNode<'a> {
     fn render(&self, source: &str, out: &mut String) {
         match self {
             JsonNode::Object(object) => object.render(source, out),
@@ -72,14 +66,14 @@ impl JsonNode {
     }
 }
 
-struct ObjectNode {
+struct ObjectNode<'a> {
     leading_slots: Vec<Range<usize>>,
-    entries: Vec<ObjectEntry>,
+    entries: Vec<ObjectEntry<'a>>,
     trailing_slots: Vec<Range<usize>>,
     empty_trivia: Option<Range<usize>>,
 }
 
-impl ObjectNode {
+impl<'a> ObjectNode<'a> {
     fn render(&self, source: &str, out: &mut String) {
         out.push('{');
 
@@ -89,17 +83,14 @@ impl ObjectNode {
             return;
         }
 
-        let mut entries: Vec<&ObjectEntry> = self.entries.iter().collect();
-        entries.sort_by(|left, right| left.key.cmp(&right.key));
-
-        for (index, entry) in entries.iter().enumerate() {
+        for (index, entry) in self.entries.iter().enumerate() {
             out.push_str(&source[self.leading_slots[index].clone()]);
             out.push_str(&source[entry.key_span.clone()]);
             out.push_str(&source[entry.between.clone()]);
             entry.value.render(source, out);
             out.push_str(&source[self.trailing_slots[index].clone()]);
 
-            if index + 1 < entries.len() {
+            if index + 1 < self.entries.len() {
                 out.push(',');
             }
         }
@@ -108,19 +99,19 @@ impl ObjectNode {
     }
 }
 
-struct ObjectEntry {
+struct ObjectEntry<'a> {
     key_span: Range<usize>,
-    key: String,
+    key: Cow<'a, str>,
     between: Range<usize>,
-    value: JsonNode,
+    value: JsonNode<'a>,
 }
 
-struct ArrayNode {
-    items: Vec<ArrayItem>,
+struct ArrayNode<'a> {
+    items: Vec<ArrayItem<'a>>,
     empty_trivia: Option<Range<usize>>,
 }
 
-impl ArrayNode {
+impl<'a> ArrayNode<'a> {
     fn render(&self, source: &str, out: &mut String) {
         out.push('[');
 
@@ -144,9 +135,9 @@ impl ArrayNode {
     }
 }
 
-struct ArrayItem {
+struct ArrayItem<'a> {
     leading: Range<usize>,
-    value: JsonNode,
+    value: JsonNode<'a>,
     after: Range<usize>,
 }
 
@@ -182,7 +173,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_value(&mut self) -> Result<JsonNode> {
+    fn parse_value(&mut self) -> Result<JsonNode<'a>> {
         match self.peek_byte() {
             Some(b'{') => self.parse_object().map(JsonNode::Object),
             Some(b'[') => self.parse_array().map(JsonNode::Array),
@@ -196,7 +187,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_object(&mut self) -> Result<ObjectNode> {
+    fn parse_object(&mut self) -> Result<ObjectNode<'a>> {
         self.expect_byte(b'{')?;
 
         let mut next_leading = self.parse_trivia()?;
@@ -216,8 +207,6 @@ impl<'a> Parser<'a> {
         loop {
             leading_slots.push(next_leading);
             let key_span = self.parse_string()?;
-            let key = serde_json::from_str::<String>(&self.source[key_span.clone()])
-                .context("Failed to parse object key")?;
 
             let between_start = self.pos;
             self.parse_trivia()?;
@@ -229,8 +218,15 @@ impl<'a> Parser<'a> {
             let after = self.parse_trivia()?;
 
             entries.push(ObjectEntry {
+                key: if self.source[key_span.clone()].contains('\\') {
+                    Cow::Owned(
+                        serde_json::from_str::<String>(&self.source[key_span.clone()])
+                            .context("Failed to parse object key")?,
+                    )
+                } else {
+                    Cow::Borrowed(&self.source[key_span.start + 1..key_span.end - 1])
+                },
                 key_span,
-                key,
                 between,
                 value,
             });
@@ -249,6 +245,8 @@ impl<'a> Parser<'a> {
             }
         }
 
+        entries.sort_by(|left, right| left.key.cmp(&right.key));
+
         Ok(ObjectNode {
             leading_slots,
             entries,
@@ -257,7 +255,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_array(&mut self) -> Result<ArrayNode> {
+    fn parse_array(&mut self) -> Result<ArrayNode<'a>> {
         self.expect_byte(b'[')?;
 
         let mut next_leading = self.parse_trivia()?;
@@ -385,16 +383,14 @@ impl<'a> Parser<'a> {
         loop {
             let checkpoint = self.pos;
 
-            while matches!(self.peek_byte(), Some(b' ' | b'\n' | b'\r' | b'\t')) {
+            // Skip whitespace
+            while self.pos < self.bytes.len() && self.bytes[self.pos].is_ascii_whitespace() {
                 self.pos += 1;
             }
 
             if self.bytes[self.pos..].starts_with(b"//") {
                 self.pos += 2;
-                while let Some(byte) = self.peek_byte() {
-                    if byte == b'\n' {
-                        break;
-                    }
+                while self.pos < self.bytes.len() && self.bytes[self.pos] != b'\n' {
                     self.pos += 1;
                 }
                 continue;
