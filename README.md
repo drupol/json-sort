@@ -99,7 +99,7 @@ If you pass `-` as the only argument, `json-sort` will read JSON from standard i
   curl -s https://api.example.com/data.json | json-sort -
   ```
 
-## Behaviors and Limitations
+## Behaviors
 
 ### Comments
 
@@ -120,7 +120,7 @@ This tool does not apply a global pretty-print format. Instead, it rewrites only
 
 Arrays are never reordered, and inline versus multi-line layout is preserved.
 
-### Recommended Tools
+## Recommended Tools
 
 For advanced formatting and JSON manipulation, consider these tools:
 
@@ -132,8 +132,6 @@ For advanced formatting and JSON manipulation, consider these tools:
   ```sh
   json-sort --fix myfile.json && prettier --write myfile.json
   ```
-
-These changes are semantically identical in JSON, but modified objects may still change bytes because keys are reordered in place.
 
 [github stars]: https://img.shields.io/github/stars/drupol/json-sort.svg?style=flat-square
 [donate github]: https://img.shields.io/badge/Sponsor-Github-brightgreen.svg?style=flat-square
