@@ -49,11 +49,40 @@ nix run github:drupol/json-sort
 
 ## Usage
 
+### Command Line
+
 ```sh
 json-sort [--fix] [--check] [--version] <file_or_dir_or_glob|-> [<other_files_or_dirs_or_globs>]
 ```
 
 If you pass `-` as the only argument, `json-sort` will read JSON from standard input (stdin) and print the sorted result to standard output (stdout). This is useful for piping and shell usage.
+
+### VSCode Extension
+
+You can integrate `json-sort` in VS Code using the [Custom Local Formatters extension](https://marketplace.visualstudio.com/items?itemName=jkillian.custom-local-formatters).
+
+Add the following to `.vscode/settings.json`:
+
+```json
+{
+  "customLocalFormatters.formatters": [
+    {
+      "command": "json-sort --fix -",
+      "languages": ["json"]
+    }
+  ]
+}
+```
+
+This runs `json-sort` as the formatter for JSON files.
+
+How to use it:
+
+1. Install `json-sort`.
+2. Edit `.vscode/settings.json` and add the configuration above.
+3. Open a JSON file.
+4. Press `Shift+Ctrl+P`, run `Format Document With...`, then select `Custom Local Formatters`.
+5. Profit.
 
 ### Main options
 
