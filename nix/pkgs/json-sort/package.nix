@@ -6,7 +6,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "json-sort";
-  version = "0.1.1";
+  version = "1.0.0";
 
   __structuredAttrs = true;
 
@@ -20,7 +20,7 @@ rustPlatform.buildRustPackage {
     ];
   };
 
-  cargoHash = "sha256-MnD1kF7R5xbCntgjiMEYUjUUhrPl9jpWAqm0GOEsvIs=";
+  cargoHash = "sha256-LBMExTj855F+PpFpqcpxTyBR3eEEF235kTbd5CmSQWo=";
 
   dontUseCargoParallelTests = true;
 
