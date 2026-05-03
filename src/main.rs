@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use glob::glob;
 use json_sort::{sort_json_file, sort_json_string};
@@ -48,33 +48,15 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let (files_to_process, mut had_errors) = collect_files(&args.files);
+    let files_to_process = collect_files(&args.files)?;
+    let mut had_errors = false;
     let mut had_unsorted = false;
 
     let results: Vec<FileResult> = files_to_process
         .into_par_iter()
-        .map(|path| {
-            let status: FileStatus = if args.check || !args.fix {
-                match check_file(&path) {
-                    Ok(true) => FileStatus::Unsorted,
-                    Ok(false) => FileStatus::Clean,
-                    Err(e) => FileStatus::Error(format!("{:#}", e)),
-                }
-            } else {
-                match sort_json_file(&path) {
-                    Ok(true) => FileStatus::Fixed,
-                    Ok(false) => FileStatus::Clean,
-                    Err(e) => FileStatus::Error(format!("{:#}", e)),
-                }
-            };
-            FileResult { path, status }
-        })
+        .map(|path| process_file(path, args.check || !args.fix))
         .collect();
 
-    // The current tests expect output to be printed in order, but Rayon processing is out of order.
-    // However, we can sort the results by path to maintain some determinism or just print them.
-    // The previous implementation used an index to keep original order. Let's do that if needed.
-    // But sorting by path is also fine and maybe better for users.
     let mut results = results;
     results.sort_by(|a, b| a.path.cmp(&b.path));
 
@@ -102,6 +84,24 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn process_file(path: PathBuf, check_only: bool) -> FileResult {
+    let status = if check_only {
+        match check_file(&path) {
+            Ok(true) => FileStatus::Unsorted,
+            Ok(false) => FileStatus::Clean,
+            Err(e) => FileStatus::Error(format!("{:#}", e)),
+        }
+    } else {
+        match sort_json_file(&path) {
+            Ok(true) => FileStatus::Fixed,
+            Ok(false) => FileStatus::Clean,
+            Err(e) => FileStatus::Error(format!("{:#}", e)),
+        }
+    };
+
+    FileResult { path, status }
+}
+
 fn process_stdin() -> Result<()> {
     let mut buffer = String::new();
     io::stdin()
@@ -125,26 +125,28 @@ fn check_file(path: &Path) -> Result<bool> {
     Ok(original != sorted)
 }
 
-fn collect_files(patterns: &[String]) -> (Vec<PathBuf>, bool) {
+fn collect_files(patterns: &[String]) -> Result<Vec<PathBuf>> {
     let mut files_to_process = Vec::new();
     let mut seen_paths = HashSet::new();
-    let mut had_errors = false;
+    let mut errors = Vec::new();
 
     for pattern in patterns {
         let path = Path::new(pattern);
         if path.is_dir() {
-            for entry in walkdir::WalkDir::new(path)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                if entry.file_type().is_file()
-                    && entry.path().extension().is_some_and(|ext| ext == "json")
-                {
-                    add_path(
-                        &mut files_to_process,
-                        &mut seen_paths,
-                        entry.path().to_path_buf(),
-                    );
+            for entry in walkdir::WalkDir::new(path) {
+                match entry {
+                    Ok(entry) => {
+                        if entry.file_type().is_file()
+                            && entry.path().extension().is_some_and(|ext| ext == "json")
+                        {
+                            add_path(
+                                &mut files_to_process,
+                                &mut seen_paths,
+                                entry.path().to_path_buf(),
+                            );
+                        }
+                    }
+                    Err(e) => errors.push(format!("Error walking directory '{}': {}", pattern, e)),
                 }
             }
         } else if pattern.contains('*') || pattern.contains('?') || pattern.contains('[') {
@@ -159,31 +161,28 @@ fn collect_files(patterns: &[String]) -> (Vec<PathBuf>, bool) {
                                     add_path(&mut files_to_process, &mut seen_paths, p);
                                 }
                             }
-                            Err(e) => {
-                                eprintln!("Error expanding glob pattern '{}': {}", pattern, e);
-                                had_errors = true;
-                            }
+                            Err(e) => errors
+                                .push(format!("Error expanding glob pattern '{}': {}", pattern, e)),
                         }
                     }
                     if !matched {
-                        eprintln!("No files matched input: {}", pattern);
-                        had_errors = true;
+                        errors.push(format!("No files matched input: {}", pattern));
                     }
                 }
-                Err(e) => {
-                    eprintln!("Invalid glob pattern '{}': {}", pattern, e);
-                    had_errors = true;
-                }
+                Err(e) => errors.push(format!("Invalid glob pattern '{}': {}", pattern, e)),
             }
         } else if path.exists() {
             add_path(&mut files_to_process, &mut seen_paths, path.to_path_buf());
         } else {
-            eprintln!("No files matched input: {}", pattern);
-            had_errors = true;
+            errors.push(format!("No files matched input: {}", pattern));
         }
     }
 
-    (files_to_process, had_errors)
+    if !errors.is_empty() {
+        bail!("{}", errors.join("\n"));
+    }
+
+    Ok(files_to_process)
 }
 
 fn add_path(files: &mut Vec<PathBuf>, seen: &mut HashSet<PathBuf>, path: PathBuf) {

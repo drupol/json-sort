@@ -61,6 +61,18 @@ fn test_missing_input_exits_with_error() {
 }
 
 #[test]
+fn test_invalid_glob_exits_with_error() {
+    let output = Command::new(CLI_PATH)
+        .arg("[")
+        .output()
+        .expect("failed to execute process");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Invalid glob pattern"));
+}
+
+#[test]
 fn test_duplicate_inputs_are_processed_once() {
     let file = NamedTempFile::new().unwrap();
     let file_path = file.path();
