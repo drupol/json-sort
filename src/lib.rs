@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::borrow::Cow;
 use std::fs;
 use std::ops::Range;
@@ -9,7 +9,7 @@ pub fn sort_json_string(original: &str) -> Result<String> {
     let document = parser
         .parse_document()
         .context("Parsing the JSON was not possible")?;
-    document.render()
+    Ok(document.render())
 }
 
 pub fn sort_json_file<P: AsRef<Path>>(path: P) -> Result<bool> {
@@ -37,12 +37,12 @@ struct Document<'a> {
 }
 
 impl<'a> Document<'a> {
-    fn render(&self) -> Result<String> {
+    fn render(&self) -> String {
         let mut rendered = String::with_capacity(self.source.len());
         rendered.push_str(self.slice(&self.leading));
         self.root.render(self.source, &mut rendered);
         rendered.push_str(self.slice(&self.trailing));
-        Ok(rendered)
+        rendered
     }
 
     fn slice(&self, range: &Range<usize>) -> &str {

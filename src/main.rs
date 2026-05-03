@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use glob::glob;
 use json_sort::{sort_json_file, sort_json_string};
@@ -12,7 +12,13 @@ use std::path::{Path, PathBuf};
 #[command(name = "json-sort")]
 #[command(version)]
 #[command(
-    about = env!("CARGO_PKG_DESCRIPTION")
+    about = env!("CARGO_PKG_DESCRIPTION"),
+    long_about = r#"
+
+A tool to sort JSON files with a consistent key order.
+Can be used to maintain a standard format for JSON files in a project,
+making them easier to read and review.
+"#
 )]
 struct Args {
     /// Update files with fixes instead of just reporting. Defaults to reporting only.

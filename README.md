@@ -10,7 +10,7 @@ It is designed to make JSON files easier to compare by sorting object keys only.
 ## Features
 
 - It is written in [Rust](https://rust-lang.org/) and it is tiny, less than 1.5MB.
-- It rewrites the original source file so object keys can be sorted without reformatting the whole document, validates JSON with [`serde_json`](https://crates.io/crates/serde_json).
+- It rewrites the original source file so object keys can be sorted without reformatting the whole document, while validating JSON string literals with [`serde_json`](https://crates.io/crates/serde_json).
 - It is multi-threaded and can process multiple files in parallel, which may improve performance on large codebases.
 - When a file is modified, existing whitespace, indentation, inline layout, and array order are preserved as much as possible.
 - It has a `--check` mode for CI usage, which only checks without modifying files.
@@ -132,7 +132,7 @@ How to use it:
 
 ### Comments
 
-Standard JSON does not support comments, but this tool accepts line comments `//` and block comments `/* */` and preserves them when rewriting the file.
+Standard JSON does not support comments, but this tool accepts line comments `//` and block comments `/* */` and preserves them when rewriting the file. In practice, this makes the accepted input closer to JSONC than strict JSON.
 
 When object keys are reordered, comments and surrounding whitespace stay in their original layout positions.
 
