@@ -5,7 +5,7 @@ use json_sort::{sort_json_file, sort_json_string};
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::fs;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
@@ -109,7 +109,9 @@ fn process_stdin() -> Result<()> {
         .context("Failed to read from stdin")?;
 
     let sorted = sort_json_string(&buffer).context("Failed to sort JSON from stdin")?;
-    println!("{}", sorted);
+    io::stdout()
+        .write_all(sorted.as_bytes())
+        .context("Failed to write sorted JSON to stdout")?;
     Ok(())
 }
 

@@ -1,5 +1,6 @@
 use std::fs;
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
 
 const CLI_PATH: &str = env!("CARGO_BIN_EXE_json-sort");
@@ -136,4 +137,26 @@ fn test_help_includes_package_description() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains(env!("CARGO_PKG_DESCRIPTION")));
+}
+
+#[test]
+fn test_stdin_preserves_missing_trailing_newline() {
+    let mut child = Command::new(CLI_PATH)
+        .arg("-")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("failed to execute process");
+
+    child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all(br#"{"b":1,"a":2}"#)
+        .unwrap();
+
+    let output = child.wait_with_output().unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(output.stdout, br#"{"a":2,"b":1}"#);
 }
