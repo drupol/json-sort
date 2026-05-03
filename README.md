@@ -1,5 +1,7 @@
-![GitHub stars][github stars]
-[![Donate!][donate github]][5]
+![GitHub stars][GitHub stars]
+[![Crates.io Version][Crates.io Version]][json-sort crates]
+[![Crates.io License][Crates.io License]][json-sort crates]
+[![Donate!][Donate!]][sponsor link]
 
 # JSON Sort
 
@@ -162,7 +164,12 @@ For advanced formatting and JSON manipulation, consider these tools:
   json-sort --fix myfile.json && prettier --write myfile.json
   ```
 
-[github stars]: https://img.shields.io/github/stars/drupol/json-sort.svg?style=flat-square
-[donate github]: https://img.shields.io/badge/Sponsor-Github-brightgreen.svg?style=flat-square
-[5]: https://github.com/sponsors/drupol
+[GitHub stars]: https://img.shields.io/github/stars/drupol/json-sort.svg?style=flat-square
+[Donate!]: https://img.shields.io/badge/Sponsor-Github-brightgreen.svg?style=flat-square
+[sponsor link]: https://github.com/sponsors/drupol
+[`json-sort` package]: https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=json-sort
+[MiniJinja]: https://docs.rs/minijinja/
+[Crates.io License]: https://img.shields.io/crates/l/json-sort?style=flat-square
+[Crates.io Version]: https://img.shields.io/crates/v/json-sort?style=flat-square
 [json-sort package]: https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=json-sort
+[json-sort crates]: https://crates.io/crates/json-sort
