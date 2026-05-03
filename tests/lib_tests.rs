@@ -1,4 +1,4 @@
-use json_sort::sort_json_file;
+use json_sort::{sort_json_file, sort_json_string};
 use std::fs;
 use tempfile::NamedTempFile;
 
@@ -39,4 +39,19 @@ fn test_all_fixtures() {
             );
         }
     }
+}
+
+#[test]
+fn test_rejects_invalid_string_escape() {
+    assert!(sort_json_string(r#"{"b":"\q","a":1}"#).is_err());
+}
+
+#[test]
+fn test_rejects_raw_control_character_in_string() {
+    assert!(sort_json_string("{\"b\":\"\u{0001}\",\"a\":1}").is_err());
+}
+
+#[test]
+fn test_rejects_invalid_unicode_surrogate() {
+    assert!(sort_json_string(r#"{"b":"\uD800","a":1}"#).is_err());
 }

@@ -305,7 +305,10 @@ impl<'a> Parser<'a> {
             match byte {
                 b'"' => {
                     self.pos += 1;
-                    return Ok(start..self.pos);
+                    let range = start..self.pos;
+                    serde_json::from_str::<String>(&self.source[range.clone()])
+                        .with_context(|| format!("Invalid string literal at byte {}", start))?;
+                    return Ok(range);
                 }
                 b'\\' => {
                     self.pos += 1;
