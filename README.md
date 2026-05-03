@@ -155,11 +155,11 @@ Arrays are never reordered, and inline versus multi-line layout is preserved.
 
 For advanced formatting and JSON manipulation, consider these tools:
 
-- [jq](https://jqlang.org/): A flexible command-line JSON processor.
+- [jaq]: A `jq` clone focussed on correctness, speed, and simplicity
   ```sh
-  echo '{"z": 10, "a": 5, "c": 2}' | json-sort - | jq .
+  echo '{"z": 10, "a": 5, "c": 2}' | json-sort - | jaq .
   ```
-- [Prettier](https://prettier.io/): An opinionated code formatter that supports JSON.
+- [Prettier]: An opinionated code formatter that supports JSON
   ```sh
   json-sort --fix myfile.json && prettier --write myfile.json
   ```
@@ -173,3 +173,5 @@ For advanced formatting and JSON manipulation, consider these tools:
 [Crates.io Version]: https://img.shields.io/crates/v/json-sort?style=flat-square
 [json-sort package]: https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=json-sort
 [json-sort crates]: https://crates.io/crates/json-sort
+[jaq]: https://github.com/01mf02/jaq
+[Prettier]: https://prettier.io/

@@ -6,7 +6,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "json-sort";
-  version = "1.0.0";
+  version = "1.1.0";
 
   __structuredAttrs = true;
 
@@ -20,9 +20,7 @@ rustPlatform.buildRustPackage {
     ];
   };
 
-  cargoHash = "sha256-LBMExTj855F+PpFpqcpxTyBR3eEEF235kTbd5CmSQWo=";
-
-  dontUseCargoParallelTests = true;
+  cargoHash = "sha256-LpZIVWWb8HI1HM3m8Vhfk27bWFpU37GYssmsfEJQAVg=";
 
   doInstallCheck = true;
   nativeInstallCheckInputs = [ versionCheckHook ];

@@ -1,6 +1,6 @@
 [package]
 name = "json-sort"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 authors = ["Pol Dellaiera <pol.dellaiera@protonmail.com>"]
 homepage = "https://github.com/drupol/json-sort"
@@ -9,7 +9,7 @@ readme = "README.md"
 license = "EUPL-1.2"
 keywords = ["json", "sort"]
 categories = ["command-line-utilities"]
-description = "A CLI tool that sorts JSON object keys to make comparisons and diffs easier, without reordering arrays."
+description = "A command-line tool that sorts JSON files with a consistent key order, making them easier to read and maintain."
 
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }

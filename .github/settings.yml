@@ -27,7 +27,7 @@ repository:
   allow_rebase_merge: true
   allow_squash_merge: true
   default_branch: main
-  description: "A command-line tool to sort JSON object keys in-place, preserving formatting and comments."
+  description: "A command-line tool that sorts JSON files with a consistent key order, making them easier to read and maintain."
   has_downloads: true
   has_issues: true
   has_pages: false
