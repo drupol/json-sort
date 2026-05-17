@@ -1,7 +1,6 @@
 use anyhow::{Context, Result, bail};
 use std::borrow::Cow;
 use std::fs;
-use std::ops::Range;
 use std::path::Path;
 
 pub fn sort_json_string(original: &str) -> Result<String> {
@@ -30,68 +29,65 @@ pub fn sort_json_file<P: AsRef<Path>>(path: P) -> Result<bool> {
 }
 
 struct Document<'a> {
-    source: &'a str,
-    leading: Range<usize>,
+    source_len: usize,
+    leading: &'a str,
     root: JsonNode<'a>,
-    trailing: Range<usize>,
+    trailing: &'a str,
 }
 
 impl<'a> Document<'a> {
     fn render(&self) -> String {
-        let mut rendered = String::with_capacity(self.source.len());
-        rendered.push_str(self.slice(&self.leading));
-        self.root.render(self.source, &mut rendered);
-        rendered.push_str(self.slice(&self.trailing));
+        let mut rendered = String::with_capacity(self.source_len);
+        rendered.push_str(self.leading);
+        self.root.render(&mut rendered);
+        rendered.push_str(self.trailing);
         rendered
-    }
-
-    fn slice(&self, range: &Range<usize>) -> &str {
-        &self.source[range.clone()]
     }
 }
 
 enum JsonNode<'a> {
     Object(ObjectNode<'a>),
     Array(ArrayNode<'a>),
-    Primitive(Range<usize>),
+    Primitive(&'a str),
 }
 
 impl<'a> JsonNode<'a> {
-    fn render(&self, source: &str, out: &mut String) {
+    fn render(&self, out: &mut String) {
         match self {
-            JsonNode::Object(object) => object.render(source, out),
-            JsonNode::Array(array) => array.render(source, out),
-            JsonNode::Primitive(range) => out.push_str(&source[range.clone()]),
+            JsonNode::Object(object) => object.render(out),
+            JsonNode::Array(array) => array.render(out),
+            JsonNode::Primitive(slice) => out.push_str(slice),
         }
     }
 }
 
 struct ObjectNode<'a> {
-    leading_slots: Vec<Range<usize>>,
-    entries: Vec<ObjectEntry<'a>>,
-    trailing_slots: Vec<Range<usize>>,
-    empty_trivia: Option<Range<usize>>,
+    body: ObjectBody<'a>,
+}
+
+enum ObjectBody<'a> {
+    Empty(&'a str),
+    Entries(Vec<ObjectEntry<'a>>),
 }
 
 impl<'a> ObjectNode<'a> {
-    fn render(&self, source: &str, out: &mut String) {
+    fn render(&self, out: &mut String) {
         out.push('{');
 
-        if let Some(trivia) = &self.empty_trivia {
-            out.push_str(&source[trivia.clone()]);
-            out.push('}');
-            return;
-        }
+        match &self.body {
+            ObjectBody::Empty(trivia) => out.push_str(trivia),
+            ObjectBody::Entries(entries) => {
+                for (index, entry) in entries.iter().enumerate() {
+                    out.push_str(entry.leading);
+                    out.push_str(entry.key.raw_span);
+                    out.push_str(entry.between);
+                    entry.value.render(out);
+                    out.push_str(entry.after);
 
-        for (index, entry) in self.entries.iter().enumerate() {
-            out.push_str(&source[self.leading_slots[index].clone()]);
-            out.push_str(&source[entry.key_span.clone()]);
-            out.push_str(&source[entry.between.clone()]);
-            entry.value.render(source, out);
-            out.push_str(&source[self.trailing_slots[index].clone()]);
-
-            if index + 1 < self.entries.len() {
-                out.push(',');
+                    if index + 1 < entries.len() {
+                        out.push(',');
+                    }
+                }
             }
         }
 
@@ -99,35 +95,59 @@ impl<'a> ObjectNode<'a> {
     }
 }
 
+struct ParsedKey<'a> {
+    raw_span: &'a str,
+    decoded: Cow<'a, str>,
+}
+
+impl<'a> ParsedKey<'a> {
+    fn from_raw(raw: RawString<'a>) -> Result<Self> {
+        let decoded = if let Some(decoded) = raw.decoded {
+            Cow::Owned(decoded)
+        } else {
+            Cow::Borrowed(&raw.raw[1..raw.raw.len() - 1])
+        };
+
+        Ok(Self {
+            raw_span: raw.raw,
+            decoded,
+        })
+    }
+}
+
 struct ObjectEntry<'a> {
-    key_span: Range<usize>,
-    key: Cow<'a, str>,
-    between: Range<usize>,
+    leading: &'a str,
+    key: ParsedKey<'a>,
+    between: &'a str,
     value: JsonNode<'a>,
+    after: &'a str,
 }
 
 struct ArrayNode<'a> {
-    items: Vec<ArrayItem<'a>>,
-    empty_trivia: Option<Range<usize>>,
+    body: ArrayBody<'a>,
+}
+
+enum ArrayBody<'a> {
+    Empty(&'a str),
+    Items(Vec<ArrayItem<'a>>),
 }
 
 impl<'a> ArrayNode<'a> {
-    fn render(&self, source: &str, out: &mut String) {
+    fn render(&self, out: &mut String) {
         out.push('[');
 
-        if let Some(trivia) = &self.empty_trivia {
-            out.push_str(&source[trivia.clone()]);
-            out.push(']');
-            return;
-        }
+        match &self.body {
+            ArrayBody::Empty(trivia) => out.push_str(trivia),
+            ArrayBody::Items(items) => {
+                for (index, item) in items.iter().enumerate() {
+                    out.push_str(item.leading);
+                    item.value.render(out);
+                    out.push_str(item.after);
 
-        for (index, item) in self.items.iter().enumerate() {
-            out.push_str(&source[item.leading.clone()]);
-            item.value.render(source, out);
-            out.push_str(&source[item.after.clone()]);
-
-            if index + 1 < self.items.len() {
-                out.push(',');
+                    if index + 1 < items.len() {
+                        out.push(',');
+                    }
+                }
             }
         }
 
@@ -136,9 +156,14 @@ impl<'a> ArrayNode<'a> {
 }
 
 struct ArrayItem<'a> {
-    leading: Range<usize>,
+    leading: &'a str,
     value: JsonNode<'a>,
-    after: Range<usize>,
+    after: &'a str,
+}
+
+struct RawString<'a> {
+    raw: &'a str,
+    decoded: Option<String>,
 }
 
 struct Parser<'a> {
@@ -166,7 +191,7 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Document {
-            source: self.source,
+            source_len: self.source.len(),
             leading,
             root,
             trailing,
@@ -177,7 +202,9 @@ impl<'a> Parser<'a> {
         match self.peek_byte() {
             Some(b'{') => self.parse_object().map(JsonNode::Object),
             Some(b'[') => self.parse_array().map(JsonNode::Array),
-            Some(b'"') => self.parse_string().map(JsonNode::Primitive),
+            Some(b'"') => self
+                .lex_string()
+                .map(|string| JsonNode::Primitive(string.raw)),
             Some(b'-' | b'0'..=b'9') => self.parse_number().map(JsonNode::Primitive),
             Some(b't') => self.parse_literal("true").map(JsonNode::Primitive),
             Some(b'f') => self.parse_literal("false").map(JsonNode::Primitive),
@@ -194,43 +221,31 @@ impl<'a> Parser<'a> {
         if self.peek_byte() == Some(b'}') {
             self.pos += 1;
             return Ok(ObjectNode {
-                leading_slots: Vec::new(),
-                entries: Vec::new(),
-                trailing_slots: Vec::new(),
-                empty_trivia: Some(next_leading),
+                body: ObjectBody::Empty(next_leading),
             });
         }
 
-        let mut leading_slots = Vec::new();
         let mut entries = Vec::new();
-        let mut trailing_slots = Vec::new();
         loop {
-            leading_slots.push(next_leading);
-            let key_span = self.parse_string()?;
+            let raw_key = self.lex_string()?;
+            let parsed_key = ParsedKey::from_raw(raw_key)?;
 
             let between_start = self.pos;
             self.parse_trivia()?;
             self.expect_byte(b':')?;
             self.parse_trivia()?;
-            let between = between_start..self.pos;
+            let between = &self.source[between_start..self.pos];
 
             let value = self.parse_value()?;
             let after = self.parse_trivia()?;
 
             entries.push(ObjectEntry {
-                key: if self.source[key_span.clone()].contains('\\') {
-                    Cow::Owned(
-                        serde_json::from_str::<String>(&self.source[key_span.clone()])
-                            .context("Failed to parse object key")?,
-                    )
-                } else {
-                    Cow::Borrowed(&self.source[key_span.start + 1..key_span.end - 1])
-                },
-                key_span,
+                leading: next_leading,
+                key: parsed_key,
                 between,
                 value,
+                after,
             });
-            trailing_slots.push(after);
 
             match self.peek_byte() {
                 Some(b',') => {
@@ -245,13 +260,10 @@ impl<'a> Parser<'a> {
             }
         }
 
-        entries.sort_by(|left, right| left.key.cmp(&right.key));
+        sort_entries_preserving_trivia_slots(&mut entries);
 
         Ok(ObjectNode {
-            leading_slots,
-            entries,
-            trailing_slots,
-            empty_trivia: None,
+            body: ObjectBody::Entries(entries),
         })
     }
 
@@ -262,8 +274,7 @@ impl<'a> Parser<'a> {
         if self.peek_byte() == Some(b']') {
             self.pos += 1;
             return Ok(ArrayNode {
-                items: Vec::new(),
-                empty_trivia: Some(next_leading),
+                body: ArrayBody::Empty(next_leading),
             });
         }
 
@@ -292,30 +303,47 @@ impl<'a> Parser<'a> {
         }
 
         Ok(ArrayNode {
-            items,
-            empty_trivia: None,
+            body: ArrayBody::Items(items),
         })
     }
 
-    fn parse_string(&mut self) -> Result<Range<usize>> {
+    fn lex_string(&mut self) -> Result<RawString<'a>> {
         self.expect_byte(b'"')?;
         let start = self.pos - 1;
+        let mut has_escapes = false;
 
         while let Some(byte) = self.peek_byte() {
             match byte {
                 b'"' => {
                     self.pos += 1;
-                    let range = start..self.pos;
-                    serde_json::from_str::<String>(&self.source[range.clone()])
-                        .with_context(|| format!("Invalid string literal at byte {}", start))?;
-                    return Ok(range);
+                    let slice = &self.source[start..self.pos];
+                    let decoded =
+                        if has_escapes {
+                            // I delegate the full validation of escape sequence syntax to serde_json.
+                            // Although a manual "zero-allocation" validator would be faster,
+                            // I prefer to rely on this proven library to guarantee 100% compliance
+                            // with the JSON standard without having to maintain my own validation code.
+                            Some(serde_json::from_str::<String>(slice).with_context(|| {
+                                format!("Invalid string literal at byte {}", start)
+                            })?)
+                        } else {
+                            None
+                        };
+                    return Ok(RawString {
+                        raw: slice,
+                        decoded,
+                    });
                 }
                 b'\\' => {
+                    has_escapes = true;
                     self.pos += 1;
                     if self.peek_byte().is_none() {
                         bail!("Unterminated escape sequence at byte {}", self.pos);
                     }
                     self.pos += 1;
+                }
+                0x00..=0x1F => {
+                    bail!("Invalid string literal at byte {}", start);
                 }
                 _ => {
                     self.pos += 1;
@@ -326,7 +354,7 @@ impl<'a> Parser<'a> {
         bail!("Unterminated string literal")
     }
 
-    fn parse_number(&mut self) -> Result<Range<usize>> {
+    fn parse_number(&mut self) -> Result<&'a str> {
         let start = self.pos;
 
         if self.peek_byte() == Some(b'-') {
@@ -367,20 +395,20 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(start..self.pos)
+        Ok(&self.source[start..self.pos])
     }
 
-    fn parse_literal(&mut self, literal: &str) -> Result<Range<usize>> {
+    fn parse_literal(&mut self, literal: &str) -> Result<&'a str> {
         let start = self.pos;
         if self.bytes[start..].starts_with(literal.as_bytes()) {
             self.pos += literal.len();
-            return Ok(start..self.pos);
+            return Ok(&self.source[start..self.pos]);
         }
 
         bail!("Expected '{}' at byte {}", literal, start)
     }
 
-    fn parse_trivia(&mut self) -> Result<Range<usize>> {
+    fn parse_trivia(&mut self) -> Result<&'a str> {
         let start = self.pos;
 
         loop {
@@ -420,7 +448,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(start..self.pos)
+        Ok(&self.source[start..self.pos])
     }
 
     fn expect_byte(&mut self, expected: u8) -> Result<()> {
@@ -441,5 +469,21 @@ impl<'a> Parser<'a> {
 
     fn peek_byte(&self) -> Option<u8> {
         self.bytes.get(self.pos).copied()
+    }
+}
+
+fn sort_entries_preserving_trivia_slots(entries: &mut [ObjectEntry<'_>]) {
+    // Sorting moves key/value pairs, but leading and trailing trivia belong to
+    // the original object positions so formatting stays stable.
+    let slots = entries
+        .iter()
+        .map(|entry| (entry.leading, entry.after))
+        .collect::<Vec<_>>();
+
+    entries.sort_by(|left, right| left.key.decoded.cmp(&right.key.decoded));
+
+    for (entry, (leading, after)) in entries.iter_mut().zip(slots) {
+        entry.leading = leading;
+        entry.after = after;
     }
 }

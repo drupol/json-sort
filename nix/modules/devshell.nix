@@ -19,6 +19,8 @@
         packages = with pkgs; [
           cargo
           clippy
+          hyperfine
+          python3
           rust-analyzer
           rustc
           rustfmt
