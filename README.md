@@ -1,6 +1,7 @@
 ![GitHub stars][GitHub stars]
 [![Crates.io Version][Crates.io Version]][json-sort crates]
 [![Crates.io License][Crates.io License]][json-sort crates]
+[![Try online][try online badge]][try online link]
 [![Donate!][Donate!]][sponsor link]
 
 # JSON Sort
@@ -43,21 +44,17 @@ The binary will be in `target/release/json-sort`.
 
 ### Browser demo with WebAssembly
 
-The library can also run in a browser through WebAssembly. Build the WASM package
-with [`wasm-bindgen`](https://rustwasm.github.io/wasm-bindgen/):
+The library can also run in a browser through WebAssembly:
 
 ```sh
-nix develop -c just compile
-```
-
-Then serve the static page:
-
-```sh
-nix develop -c just serve
+just serve
 ```
 
 Open <http://localhost:8080> and use the page to sort JSON object keys locally
 in the browser.
+
+Try the online demo on Github pages, find the link in the badge on top of this
+file.
 
 ### Via Nix
 
@@ -193,3 +190,5 @@ For advanced formatting and JSON manipulation, consider these tools:
 [json-sort crates]: https://crates.io/crates/json-sort
 [jaq]: https://github.com/01mf02/jaq
 [Prettier]: https://prettier.io/
+[try online badge]: https://img.shields.io/badge/Online_Demo-green?style=flat-square
+[try online link]: https://drupol.github.io/json-sort/
