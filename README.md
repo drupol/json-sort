@@ -1,4 +1,5 @@
 ![GitHub stars][GitHub stars]
+[![NPM Version][NPM Version]][NPM package]
 [![Crates.io Version][Crates.io Version]][json-sort crates]
 [![Crates.io License][Crates.io License]][json-sort crates]
 [![Try online][try online badge]][try online link]
@@ -9,6 +10,8 @@
 This project is a Rust rewrite of [`json-sort-cli`](https://github.com/tillig/json-sort-cli) with a few differences.
 
 It is designed to make JSON files easier to compare by sorting object keys only. Array order is preserved, so lists are not modified.
+
+Thanks to Rust's WebAssembly support, the same sorting logic is also available as a Node.js package.
 
 ## Features
 
@@ -41,6 +44,22 @@ cargo build --release
 ```
 
 The binary will be in `target/release/json-sort`.
+
+### Via Node.js
+
+A Node.js package generated from the Rust WebAssembly build is available as [`json-sort-rs`][json-sort npm].
+
+```sh
+npm install json-sort-rs
+```
+
+```js
+import { sort_json_string } from "json-sort-rs";
+
+const sorted = sort_json_string('{"z":1,"a":2}');
+
+console.log(sorted);
+```
 
 ### Browser demo with WebAssembly
 
@@ -188,7 +207,10 @@ For advanced formatting and JSON manipulation, consider these tools:
 [Crates.io Version]: https://img.shields.io/crates/v/json-sort?style=flat-square
 [json-sort package]: https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=json-sort
 [json-sort crates]: https://crates.io/crates/json-sort
+[json-sort npm]: https://www.npmjs.com/package/json-sort-rs
 [jaq]: https://github.com/01mf02/jaq
 [Prettier]: https://prettier.io/
 [try online badge]: https://img.shields.io/badge/Online_Demo-green?style=flat-square
 [try online link]: https://drupol.github.io/json-sort/
+[NPM Version]: https://img.shields.io/npm/v/json-sort-rs?style=flat-square
+[NPM package]: https://www.npmjs.com/package/json-sort-rs

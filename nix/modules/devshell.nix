@@ -24,6 +24,7 @@
           hyperfine
           just
           lld
+          nodejs
           rust-analyzer
           rustc
           rustfmt
