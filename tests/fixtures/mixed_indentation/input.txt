@@ -1,0 +1,11 @@
+{
+  "a": {
+"d": true,
+    "b": false
+  },
+"z": 10,
+  "items": [
+    { "name": "second", "id": 2 },
+    { "name": "first", "id": 1 }
+    ]
+}
