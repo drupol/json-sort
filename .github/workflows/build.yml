@@ -12,5 +12,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Install Nix
         uses: cachix/install-nix-action@v31
-      - name: Build
-        run: nix build .#json-sort
+      - name: Build Json Sort
+        run: nix build .#json-sort -L
+      - name: Build Json Sort Web
+        run: nix build .#json-sort-web -L
