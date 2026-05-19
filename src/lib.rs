@@ -260,7 +260,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        sort_entries_preserving_trivia_slots(&mut entries);
+        sort_entries_preserving_trivia_policy(&mut entries);
 
         Ok(ObjectNode {
             body: ObjectBody::Entries(entries),
@@ -472,18 +472,31 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn sort_entries_preserving_trivia_slots(entries: &mut [ObjectEntry<'_>]) {
-    // Sorting moves key/value pairs, but leading and trailing trivia belong to
-    // the original object positions so formatting stays stable.
-    let slots = entries
+fn sort_entries_preserving_trivia_policy(entries: &mut [ObjectEntry<'_>]) {
+    let preserve_leading_slots = entries
         .iter()
-        .map(|entry| (entry.leading, entry.after))
-        .collect::<Vec<_>>();
+        .any(|entry| trivia_contains_comment(entry.leading));
+    let leading_slots = preserve_leading_slots.then(|| {
+        entries
+            .iter()
+            .map(|entry| entry.leading)
+            .collect::<Vec<_>>()
+    });
+    let trailing_slots = entries.iter().map(|entry| entry.after).collect::<Vec<_>>();
 
     entries.sort_by(|left, right| left.key.decoded.cmp(&right.key.decoded));
 
-    for (entry, (leading, after)) in entries.iter_mut().zip(slots) {
-        entry.leading = leading;
+    if let Some(leading_slots) = leading_slots {
+        for (entry, leading) in entries.iter_mut().zip(leading_slots) {
+            entry.leading = leading;
+        }
+    }
+
+    for (entry, after) in entries.iter_mut().zip(trailing_slots) {
         entry.after = after;
     }
+}
+
+fn trivia_contains_comment(trivia: &str) -> bool {
+    trivia.contains("//") || trivia.contains("/*")
 }
