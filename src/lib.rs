@@ -3,6 +3,9 @@ use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
 
+#[cfg(target_arch = "wasm32")]
+mod wasm;
+
 pub fn sort_json_string(original: &str) -> Result<String> {
     let mut parser = Parser::new(original);
     let document = parser

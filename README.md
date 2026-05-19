@@ -41,6 +41,24 @@ cargo build --release
 
 The binary will be in `target/release/json-sort`.
 
+### Browser demo with WebAssembly
+
+The library can also run in a browser through WebAssembly. Build the WASM package
+with [`wasm-bindgen`](https://rustwasm.github.io/wasm-bindgen/):
+
+```sh
+nix develop -c just compile
+```
+
+Then serve the static page:
+
+```sh
+nix develop -c just serve
+```
+
+Open <http://localhost:8080> and use the page to sort JSON object keys locally
+in the browser.
+
 ### Via Nix
 
 You can use the package from this repository with Nix. If you have Nix installed, you can run the tool directly:
