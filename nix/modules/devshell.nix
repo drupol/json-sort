@@ -17,13 +17,18 @@
 
       make-shells.default = {
         packages = with pkgs; [
+          binaryen # wasm-opt
           cargo
+          caddy
           clippy
           hyperfine
-          python3
+          just
+          lld
           rust-analyzer
           rustc
           rustfmt
+          wasm-pack
+          wasm-bindgen-cli
         ];
 
         shellHook = ''

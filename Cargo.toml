@@ -19,8 +19,14 @@ anyhow = "1.0"
 rayon = "1.12"
 walkdir = "2.5.0"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
 [dev-dependencies]
 tempfile = "3"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "json-sort"
@@ -28,3 +34,6 @@ path = "src/main.rs"
 
 [profile.release]
 strip = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory"]
