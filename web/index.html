@@ -22,8 +22,7 @@
             <span id="version" class="badge text-bg-secondary">v...</span>
           </div>
           <p class="lead text-body-secondary mb-0">
-            Sort JSON object keys in the browser with the Rust library compiled
-            to WebAssembly.
+            Sort JSON object keys in the browser with the Rust library compiled to WebAssembly.
           </p>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -35,28 +34,8 @@
           >
             GitHub
           </a>
-          <button id="sort" class="btn btn-primary btn-lg" type="button">
-            Sort JSON
-          </button>
         </div>
       </header>
-
-      <section class="card mb-3">
-        <div class="card-body">
-          <label for="file" class="form-label fw-semibold"
-            >Load a local JSON file</label
-          >
-          <input
-            id="file"
-            class="form-control"
-            type="file"
-            accept=".json,application/json"
-          />
-          <div class="form-text">
-            The file is read locally in your browser and is not uploaded.
-          </div>
-        </div>
-      </section>
 
       <section class="row g-3" aria-label="JSON sorting workspace">
         <div class="col-12 col-lg-6">
@@ -66,19 +45,25 @@
             class="form-control font-monospace"
             rows="22"
             spellcheck="false"
-          >
-{
-  "z": 10,
-  "a": {
-    "d": true,
-    "b": false
-  },
-  "items": [
-    { "name": "second", "id": 2 },
-    { "name": "first", "id": 1 }
-  ]
-}</textarea
-          >
+          ></textarea>
+          <div class="row g-2 mt-3">
+            <div class="col-6">
+              <label for="file" class="btn btn-outline-secondary btn-lg w-100">
+                Load a local file
+              </label>
+              <input
+                id="file"
+                class="visually-hidden"
+                type="file"
+                accept=".json,application/json"
+              />
+            </div>
+            <div class="col-6">
+              <button id="random" class="btn btn-outline-primary btn-lg w-100" type="button">
+                Generate a random JSON
+              </button>
+            </div>
+          </div>
         </div>
         <div class="col-12 col-lg-6">
           <label for="output" class="form-label fw-semibold">Output</label>
@@ -89,27 +74,23 @@
             spellcheck="false"
             readonly
           ></textarea>
+          <div class="row g-2 mt-3">
+            <button id="sort" class="btn btn-primary btn-lg w-100" type="button">Sort JSON</button>
+          </div>
         </div>
       </section>
 
-      <div
-        id="status"
-        class="alert mt-3 mb-0"
-        role="status"
-        aria-live="polite"
-      ></div>
+      <div id="status" class="alert mt-3 mb-0" role="status" aria-live="polite"></div>
     </main>
 
     <script type="module">
-      import init, {
-        json_sort_version,
-        sort_json_string,
-      } from "./pkg/json_sort.js";
+      import init, { json_sort_version, sort_json_string } from "./pkg/json_sort.js";
 
       const input = document.querySelector("#input");
       const output = document.querySelector("#output");
       const status = document.querySelector("#status");
       const button = document.querySelector("#sort");
+      const randomButton = document.querySelector("#random");
       const file = document.querySelector("#file");
       const version = document.querySelector("#version");
 
@@ -128,10 +109,85 @@
           output.value = sort_json_string(input.value);
           setStatusOk("Sorted successfully.");
         } catch (error) {
-          setStatusError(
-            error instanceof Error ? error.message : String(error),
-          );
+          setStatusError(error instanceof Error ? error.message : String(error));
         }
+      }
+
+      function randomItem(items) {
+        return items[Math.floor(Math.random() * items.length)];
+      }
+
+      function randomInteger(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function randomKey() {
+        const alphabet = "abcdefghijklmnopqrstuvwxyz";
+        return Array.from({ length: randomInteger(3, 12) }, () => randomItem(alphabet)).join("");
+      }
+
+      function randomString() {
+        const samples = [
+          "plain text",
+          "with spaces",
+          "comma, separated",
+          'quote "inside"',
+          "line\nbreak",
+          "unicode café",
+          "symbols !@#$%^&*()",
+          "",
+        ];
+
+        return randomItem(samples);
+      }
+
+      function randomLineIndentation() {
+        const segments = Array.from({ length: randomInteger(0, 6) }, () =>
+          randomItem([" ", " ", "\t"]),
+        );
+        return segments.join("");
+      }
+
+      function randomValue(depth = 0) {
+        const scalarValues = [
+          randomString,
+          () => randomInteger(-10000, 10000),
+          () => Number((Math.random() * randomInteger(-100, 100)).toFixed(4)),
+          () => Math.random() > 0.5,
+          () => null,
+        ];
+
+        const nestedValues = [
+          () => Array.from({ length: randomInteger(2, 5) }, () => randomValue(depth + 1)),
+          () => randomObject(depth + 1),
+        ];
+
+        return randomItem(depth > 2 ? scalarValues : scalarValues.concat(nestedValues))();
+      }
+
+      function randomObject(depth = 0) {
+        const entries = Array.from({ length: randomInteger(4, 7) }, () => [
+          randomKey(),
+          randomValue(depth),
+        ]);
+
+        return Object.fromEntries(entries);
+      }
+
+      function generateRandomJson() {
+        const prettyJson = JSON.stringify(randomObject(), null, 2);
+        input.value = prettyJson
+          .split("\n")
+          .map((line) =>
+            line.trim().length === 0
+              ? line
+              : Math.random() < 0.25
+                ? randomLineIndentation() + line
+                : line,
+          )
+          .join("\n");
+        output.value = "";
+        setStatusOk("Generated random JSON.");
       }
 
       async function loadFile() {
@@ -154,9 +210,7 @@
           sortInput();
           setStatusOk(`Loaded and sorted ${selectedFile.name}.`);
         } catch (error) {
-          setStatusError(
-            error instanceof Error ? error.message : String(error),
-          );
+          setStatusError(error instanceof Error ? error.message : String(error));
         }
       }
 
@@ -164,12 +218,15 @@
         await init();
         version.textContent = `v${json_sort_version()}`;
         button.disabled = false;
+        randomButton.disabled = false;
         button.addEventListener("click", sortInput);
+        randomButton.addEventListener("click", generateRandomJson);
         file.addEventListener("change", loadFile);
         sortInput();
       }
 
       button.disabled = true;
+      randomButton.disabled = true;
       setStatusOk("Loading WebAssembly module...");
       main().catch((error) => {
         setStatusError(error instanceof Error ? error.message : String(error));
