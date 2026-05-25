@@ -17,7 +17,7 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Build web assets with Nix
         run: nix build .#json-sort-web -L
       - name: Stage Pages artifact
