@@ -37,7 +37,7 @@ Available via the [`json-sort` package][json-sort package], the binary is called
 
 ### Via the source code
 
-Clone the repository and run in the sourcecode folder:
+Clone the repository and run in the source code folder:
 
 ```sh
 cargo build --release
@@ -72,7 +72,7 @@ just serve
 Open <http://localhost:8080> and use the page to sort JSON object keys locally
 in the browser.
 
-Try the online demo on Github pages, find the link in the badge on top of this
+Try the online demo on GitHub Pages; the link is available in the badge at the top of this
 file.
 
 ### Via Nix
@@ -81,6 +81,33 @@ You can use the package from this repository with Nix. If you have Nix installed
 
 ```sh
 nix run github:drupol/json-sort
+```
+
+### Treefmt module
+
+This repository also exposes a reusable `treefmtModule` as `treefmtModules.default`, so you can add the
+`json-sort` formatter to any `treefmt` configuration without duplicating the setup.
+
+```nix
+  treefmt = {
+    imports = [
+      inputs.json-sort.treefmtModules.default
+    ];
+    projectRootFile = "flake.nix";
+    programs = {
+      json-sort.enable = true;
+    };
+  };
+```
+
+Make sure to add the `json-sort` flake input:
+
+```nix
+  inputs = {
+    # ... 8< ...
+    json-sort.url = "github:drupol/json-sort";
+    # ... >8 ...
+  };
 ```
 
 ## Usage
