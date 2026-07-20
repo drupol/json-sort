@@ -22,7 +22,8 @@
             <span id="version" class="badge text-bg-secondary">v...</span>
           </div>
           <p class="lead text-body-secondary mb-0">
-            Sort JSON object keys in the browser with the Rust library compiled to WebAssembly.
+            Sort JSON object keys in the browser with the Rust library compiled
+            to WebAssembly.
           </p>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -59,7 +60,11 @@
               />
             </div>
             <div class="col-6">
-              <button id="random" class="btn btn-outline-primary btn-lg w-100" type="button">
+              <button
+                id="random"
+                class="btn btn-outline-primary btn-lg w-100"
+                type="button"
+              >
                 Generate a random JSON
               </button>
             </div>
@@ -75,16 +80,30 @@
             readonly
           ></textarea>
           <div class="row g-2 mt-3">
-            <button id="sort" class="btn btn-primary btn-lg w-100" type="button">Sort JSON</button>
+            <button
+              id="sort"
+              class="btn btn-primary btn-lg w-100"
+              type="button"
+            >
+              Sort JSON
+            </button>
           </div>
         </div>
       </section>
 
-      <div id="status" class="alert mt-3 mb-0" role="status" aria-live="polite"></div>
+      <div
+        id="status"
+        class="alert mt-3 mb-0"
+        role="status"
+        aria-live="polite"
+      ></div>
     </main>
 
     <script type="module">
-      import init, { json_sort_version, sort_json_string } from "./pkg/json_sort.js";
+      import init, {
+        json_sort_version,
+        sort_json_string,
+      } from "./pkg/json_sort.js";
 
       const input = document.querySelector("#input");
       const output = document.querySelector("#output");
@@ -109,7 +128,9 @@
           output.value = sort_json_string(input.value);
           setStatusOk("Sorted successfully.");
         } catch (error) {
-          setStatusError(error instanceof Error ? error.message : String(error));
+          setStatusError(
+            error instanceof Error ? error.message : String(error),
+          );
         }
       }
 
@@ -123,7 +144,9 @@
 
       function randomKey() {
         const alphabet = "abcdefghijklmnopqrstuvwxyz";
-        return Array.from({ length: randomInteger(3, 12) }, () => randomItem(alphabet)).join("");
+        return Array.from({ length: randomInteger(3, 12) }, () =>
+          randomItem(alphabet),
+        ).join("");
       }
 
       function randomString() {
@@ -158,11 +181,16 @@
         ];
 
         const nestedValues = [
-          () => Array.from({ length: randomInteger(2, 5) }, () => randomValue(depth + 1)),
+          () =>
+            Array.from({ length: randomInteger(2, 5) }, () =>
+              randomValue(depth + 1),
+            ),
           () => randomObject(depth + 1),
         ];
 
-        return randomItem(depth > 2 ? scalarValues : scalarValues.concat(nestedValues))();
+        return randomItem(
+          depth > 2 ? scalarValues : scalarValues.concat(nestedValues),
+        )();
       }
 
       function randomObject(depth = 0) {
@@ -210,7 +238,9 @@
           sortInput();
           setStatusOk(`Loaded and sorted ${selectedFile.name}.`);
         } catch (error) {
-          setStatusError(error instanceof Error ? error.message : String(error));
+          setStatusError(
+            error instanceof Error ? error.message : String(error),
+          );
         }
       }
 
