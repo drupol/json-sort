@@ -3,6 +3,11 @@
   ...
 }:
 {
+  flake-file.inputs = {
+    make-shell.url = "github:nicknovitski/make-shell";
+    git-hooks.url = "github:cachix/git-hooks.nix";
+  };
+
   imports = [
     inputs.make-shell.flakeModules.default
     inputs.git-hooks.flakeModule
